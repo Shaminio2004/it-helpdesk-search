@@ -1,303 +1,267 @@
 #!/usr/bin/env python3
 """
-IT Helpdesk Search — Flask API Backend
-Run: python server.py
-Then open: http://localhost:5000
+IT Helpdesk Search — Flask Backend
+Uses Anthropic Claude AI with web_search tool to find and synthesise IT solutions.
 """
 
-import time
-import textwrap
-import urllib.parse
-from dataclasses import dataclass, field
-from typing import Optional
-
+import os
+import json
 import requests
-from bs4 import BeautifulSoup
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 
 app = Flask(__name__, static_folder="static")
-CORS(app)
 
-# ── Constants ──────────────────────────────────────────────────────────────────
-STACK_EXCHANGE_API = "https://api.stackexchange.com/2.3"
-REDDIT_BASE        = "https://www.reddit.com"
-USER_AGENT         = "IT-Helpdesk-Search/1.0 (python-requests)"
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"]  = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
-REDDIT_SUBREDDITS  = ["sysadmin", "techsupport", "networking", "it", "msp"]
-STACK_SITES        = [
-    ("stackoverflow", "Stack Overflow",  "SO"),
-    ("serverfault",   "Server Fault",    "SF"),
-    ("superuser",     "Super User",      "SU"),
-]
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+ANTHROPIC_URL     = "https://api.anthropic.com/v1/messages"
+MODEL             = "claude-haiku-4-5-20251001"
 
-TIER_TAGS = {
-    1: ["windows","microsoft","printer","password","email","outlook",
-        "office","vpn","wifi","browser","antivirus","backup","reboot"],
-    2: ["active-directory","group-policy","exchange","dns","dhcp",
-        "vmware","hyper-v","sql-server","powershell","linux","firewall","ldap"],
-    3: ["kubernetes","terraform","aws","azure","gcp","docker",
-        "networking","security","sso","siem","elk","ci-cd","devops"],
+TIER_KEYWORDS = {
+    1: ["windows","printer","password","email","outlook","office","vpn",
+        "wifi","browser","antivirus","backup","reboot","screen","sound","keyboard","mouse"],
+    2: ["active-directory","group-policy","exchange","dns","dhcp","vmware",
+        "hyper-v","sql","powershell","linux","firewall","ldap","server","domain"],
+    3: ["kubernetes","terraform","aws","azure","gcp","docker","security",
+        "sso","siem","devops","ci-cd","nginx","apache","cloud"],
 }
 
-# ── Data model ─────────────────────────────────────────────────────────────────
-@dataclass
-class SearchResult:
-    source:          str
-    source_key:      str
-    tier:            int
-    title:           str
-    url:             str
-    score:           int           = 0
-    answered:        bool          = False
-    answer_count:    int           = 0
-    accepted_answer: str           = ""
-    tags:            list[str]     = field(default_factory=list)
-    snippet:         str           = ""
+QUICK_FIXES = {
+    "internet|wifi|network|no connection|cant browse|offline|ethernet": [
+        "Restart your router/modem (unplug 30 sec)",
+        "Restart your computer",
+        "Forget WiFi network and reconnect",
+        "Check Ethernet cable is firmly plugged in",
+        "Make sure Airplane mode is OFF",
+        "Try opening a different website",
+        "Try a different WiFi network",
+        "Call your ISP if none of the above work",
+    ],
+    "printer|print|paper jam": [
+        "Turn printer OFF and ON again",
+        "Unplug USB/power, wait 10 sec, plug back in",
+        "Check for and clear any paper jam",
+        "Remove printer in Windows Settings and re-add",
+        "Restart Print Spooler: services.msc -> Print Spooler -> Restart",
+        "Check ink/toner levels",
+        "Run Windows printer troubleshooter",
+        "Reinstall printer driver from manufacturer website",
+    ],
+    "password|locked out|cant login|forgot password|credentials": [
+        "Check Caps Lock is OFF",
+        "Type password in Notepad first to verify it",
+        "Use Forgot Password / Reset Password link",
+        "Contact IT helpdesk to reset your account",
+        "Wait 15 minutes if too many failed attempts",
+        "Try logging in from a different device or browser",
+        "Clear browser saved passwords and try again",
+    ],
+    "slow|sluggish|frozen|freezing|hanging|performance": [
+        "Restart the computer first",
+        "Close all unused programs and browser tabs",
+        "Open Task Manager (Ctrl+Shift+Esc) - check CPU/RAM",
+        "Run Disk Cleanup (search in Start menu)",
+        "Run a full antivirus scan",
+        "Check free disk space - need at least 10% free",
+        "Install all pending Windows Updates",
+    ],
+    "email|outlook|mail|not receiving|not sending": [
+        "Completely close and reopen Outlook",
+        "Confirm internet connection is working",
+        "Check your Junk/Spam folder",
+        "Try re-entering your email password",
+        "Check mailbox storage quota is not full",
+        "Remove and re-add the email account",
+        "Start Outlook in Safe Mode: Win+R -> outlook /safe",
+    ],
+    "vpn|remote|tunnel|remote desktop|rdp": [
+        "Disconnect VPN and reconnect",
+        "Restart your internet connection first",
+        "Restart the VPN client application",
+        "Check username, password and server address",
+        "Try from a different network (mobile hotspot)",
+        "Temporarily disable firewall/antivirus and retry",
+        "Reinstall the VPN client",
+    ],
+    "blue screen|bsod|crash|stop error|kernel": [
+        "Note the exact error code on the blue screen",
+        "Restart and see if it happens again",
+        "Unplug all external USB devices and retry",
+        "Check Windows Update is fully current",
+        "Run: sfc /scannow in CMD as Administrator",
+        "Run: chkdsk /f /r in CMD as Administrator",
+        "Contact IT with the exact error code",
+    ],
+    "sound|audio|no sound|speaker|headphone|microphone|mute": [
+        "Check volume is not muted or at zero",
+        "Check speaker/headphone is plugged in",
+        "Right-click speaker icon -> Troubleshoot",
+        "Check correct audio device is selected in Sound Settings",
+        "Restart Windows Audio via services.msc",
+        "Restart the computer",
+        "Update audio driver via Device Manager",
+    ],
+}
 
-    @property
-    def relevance_score(self) -> int:
-        base = self.score * 2
-        if self.answered:        base += 50
-        if self.accepted_answer: base += 100
-        base += self.answer_count * 5
-        return base
 
-    def to_dict(self) -> dict:
-        return {
-            "source":          self.source,
-            "source_key":      self.source_key,
-            "tier":            self.tier,
-            "title":           self.title,
-            "url":             self.url,
-            "score":           self.score,
-            "relevance_score": self.relevance_score,
-            "answered":        self.answered,
-            "answer_count":    self.answer_count,
-            "accepted_answer": self.accepted_answer,
-            "tags":            self.tags,
-            "snippet":         self.snippet,
-        }
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
-def clean_html(raw: str) -> str:
-    if not raw: return ""
-    return " ".join(BeautifulSoup(raw, "html.parser").get_text().split())
-
-def detect_tier(tags: list[str], title: str) -> int:
-    combined = " ".join(tags + [title.lower()])
+def detect_tier(query):
+    q = query.lower()
     for tier in (3, 2, 1):
-        if any(kw in combined for kw in TIER_TAGS[tier]):
+        if any(kw in q for kw in TIER_KEYWORDS[tier]):
             return tier
     return 1
 
-def deduplicate(results: list[SearchResult]) -> list[SearchResult]:
-    seen, unique = set(), []
-    for r in results:
-        key = r.title.lower()[:60]
-        if key not in seen:
-            seen.add(key)
-            unique.append(r)
-    return unique
 
-# ── Stack Exchange ─────────────────────────────────────────────────────────────
-def search_stack_exchange(query: str, max_per_site: int = 5) -> list[SearchResult]:
-    results = []
-    for site_key, site_name, abbr in STACK_SITES:
-        try:
-            params = dict(order="desc", sort="relevance", q=query,
-                          site=site_key, filter="withbody",
-                          pagesize=max_per_site, accepted="True")
-            r = requests.get(f"{STACK_EXCHANGE_API}/search/advanced",
-                             params=params, headers={"User-Agent": USER_AGENT}, timeout=10)
-            items = r.json().get("items", [])
-            if not items:
-                params.pop("accepted")
-                items = requests.get(f"{STACK_EXCHANGE_API}/search/advanced",
-                                     params=params, headers={"User-Agent": USER_AGENT},
-                                     timeout=10).json().get("items", [])
-            for item in items:
-                tags  = item.get("tags", [])
-                title = item.get("title", "")
-                body  = ""
-                aid   = item.get("accepted_answer_id")
-                if aid:
-                    try:
-                        ar = requests.get(f"{STACK_EXCHANGE_API}/answers/{aid}",
-                                          params={"site": site_key, "filter": "withbody"},
-                                          headers={"User-Agent": USER_AGENT}, timeout=8)
-                        ai = ar.json().get("items", [])
-                        if ai: body = clean_html(ai[0].get("body",""))[:1000]
-                    except Exception:
-                        pass
-                results.append(SearchResult(
-                    source=site_name, source_key=abbr,
-                    tier=detect_tier(tags, title), title=title,
-                    url=item.get("link",""), score=item.get("score",0),
-                    answered=item.get("is_answered",False),
-                    answer_count=item.get("answer_count",0),
-                    accepted_answer=body, tags=tags,
-                    snippet=clean_html(item.get("body",""))[:300],
-                ))
-            time.sleep(0.4)
-        except Exception as e:
-            print(f"[SE:{site_name}] {e}")
-    return results
+def get_quick_fixes(query):
+    q = query.lower()
+    for keywords, steps in QUICK_FIXES.items():
+        if any(kw in q for kw in keywords.split("|")):
+            return steps
+    return []
 
-# ── Reddit ─────────────────────────────────────────────────────────────────────
-def search_reddit(query: str, max_per_sub: int = 3) -> list[SearchResult]:
-    results = []
-    headers = {"User-Agent": USER_AGENT}
-    for sub in REDDIT_SUBREDDITS:
-        try:
-            r = requests.get(f"{REDDIT_BASE}/r/{sub}/search.json",
-                             params=dict(q=query, restrict_sr="true",
-                                         sort="relevance", t="all", limit=max_per_sub),
-                             headers=headers, timeout=10)
-            posts = r.json().get("data",{}).get("children",[])
-            for post in posts:
-                d     = post.get("data",{})
-                title = d.get("title","")
-                score = d.get("score",0)
-                if d.get("removed_by_category") or score < 1: continue
-                top = ""
-                try:
-                    cr = requests.get(f"{REDDIT_BASE}/r/{sub}/comments/{d.get('id','')}.json",
-                                      params={"limit":5,"sort":"top"},
-                                      headers=headers, timeout=8)
-                    cd = cr.json()
-                    if len(cd) > 1:
-                        for c in cd[1].get("data",{}).get("children",[]):
-                            b = c.get("data",{}).get("body","")
-                            if b and b not in ("[deleted]","[removed]"):
-                                top = b[:1000]; break
-                except Exception:
-                    pass
-                results.append(SearchResult(
-                    source=f"r/{sub}", source_key="RD",
-                    tier=detect_tier([], title), title=title,
-                    url=f"{REDDIT_BASE}{d.get('permalink','')}",
-                    score=score, answered=bool(d.get("num_comments",0)>0),
-                    answer_count=d.get("num_comments",0),
-                    accepted_answer=top,
-                    snippet=(d.get("selftext","") or "")[:300],
-                ))
-            time.sleep(1)
-        except Exception as e:
-            print(f"[Reddit:r/{sub}] {e}")
-    return results
 
-# ── Spiceworks ─────────────────────────────────────────────────────────────────
-def search_spiceworks(query: str, max_results: int = 5) -> list[SearchResult]:
-    results = []
-    encoded = urllib.parse.quote_plus(query)
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json",
-                "Referer": "https://community.spiceworks.com/"}
-    try:
-        r = requests.get(f"https://community.spiceworks.com/api/search",
-                         params={"q": query, "type": "topic", "page": "1"},
-                         headers=headers, timeout=12)
-        if r.status_code == 200 and "application/json" in r.headers.get("content-type",""):
-            data   = r.json()
-            topics = data.get("results", data.get("topics",[]))[:max_results]
-            for t in topics:
-                title = t.get("title", t.get("name",""))
-                slug  = t.get("slug", t.get("id",""))
-                results.append(SearchResult(
-                    source="Spiceworks", source_key="SW",
-                    tier=detect_tier([], title), title=title,
-                    url=f"https://community.spiceworks.com/topic/{slug}",
-                    score=t.get("reply_count", t.get("votes",0)),
-                    answered=t.get("solved", t.get("has_accepted_answer",False)),
-                    answer_count=t.get("reply_count",0),
-                    snippet=clean_html(t.get("body", t.get("excerpt","")))[:300],
-                ))
-        else:
-            # HTML scrape fallback
-            r2 = requests.get(
-                f"https://community.spiceworks.com/search#q={encoded}&t=topic",
-                headers={"User-Agent": USER_AGENT}, timeout=12)
-            soup  = BeautifulSoup(r2.text, "html.parser")
-            cards = soup.select("li.search-result, div.search-result, article")[:max_results]
-            for card in cards:
-                a    = card.find("a", href=True)
-                title = a.get_text(strip=True) if a else ""
-                href  = a["href"] if a else ""
-                if not title: continue
-                if not href.startswith("http"):
-                    href = "https://community.spiceworks.com" + href
-                sp_el   = card.find("p") or card.find("span")
-                snippet = sp_el.get_text(strip=True)[:300] if sp_el else ""
-                results.append(SearchResult(
-                    source="Spiceworks", source_key="SW",
-                    tier=detect_tier([], title), title=title,
-                    url=href, snippet=snippet,
-                ))
-    except Exception as e:
-        print(f"[Spiceworks] {e}")
-    return results
+def clean_query(raw):
+    FILLERS = [
+        "i cant ", "i can't ", "i cannot ", "i am unable to ", "i'm unable to ",
+        "i keep getting ", "i keep ", "i have a ", "i have an ", "i have ",
+        "i am getting ", "i'm getting ", "i am having ", "i'm having ",
+        "my ", "how to fix ", "how do i fix ", "how do i ", "how to ",
+        "please help ", "help me ", "why is ", "why does ",
+        "problem with ", "issue with ", "error with ", "not able to ",
+        "unable to ", "wont ", "won't ", "doesn't ", "doesnt ",
+        "isn't ", "isnt ", "keeps ", "keep ", "suddenly ",
+    ]
+    q = raw.lower().strip()
+    for filler in FILLERS:
+        if q.startswith(filler):
+            q = q[len(filler):]
+    return q.strip() or raw.strip()
 
-# ── Synthesis ──────────────────────────────────────────────────────────────────
-def synthesise(results: list[SearchResult]) -> str:
-    top = [r for r in results if r.accepted_answer][:5] or results[:5]
-    if not top:
-        return "No detailed solutions found. Try broadening your search query."
-    parts = []
-    for i, r in enumerate(top, 1):
-        ans = r.accepted_answer or r.snippet or "No detailed answer available."
-        parts.append({
-            "index":  i,
-            "source": r.source,
-            "title":  r.title,
-            "url":    r.url,
-            "answer": ans,
-            "tier":   r.tier,
-        })
-    return parts
 
-# ── API Routes ─────────────────────────────────────────────────────────────────
+def ask_claude(query, tier):
+    tier_context = {
+        1: "basic end-user IT support (Tier 1). Give simple step-by-step instructions a non-technical user can follow.",
+        2: "infrastructure and sysadmin (Tier 2). Include technical commands and config steps.",
+        3: "advanced DevOps and cloud (Tier 3). Include detailed technical solutions and code.",
+    }.get(tier, "general IT support")
+
+    system_prompt = f"""You are an expert IT helpdesk technician specialising in {tier_context}
+
+Search the web for real solutions from Stack Overflow, Server Fault, Super User, Reddit sysadmin/techsupport, and Spiceworks community.
+
+Respond ONLY with a raw JSON object (no markdown, no backticks):
+{{
+  "summary": "One sentence description of the problem",
+  "solutions": [
+    {{
+      "rank": 1,
+      "source": "Stack Overflow",
+      "title": "Solution title",
+      "steps": ["Step 1", "Step 2", "Step 3"],
+      "url": "https://real-url-if-found.com",
+      "votes": 0
+    }}
+  ],
+  "root_cause": "Why this problem occurs",
+  "prevention": "How to prevent this in future"
+}}
+
+Provide 2-3 practical solutions. Be specific. Steps must be actionable."""
+
+    headers = {
+        "x-api-key":         ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type":      "application/json",
+        "anthropic-beta":    "web-search-2025-03-05",
+    }
+
+    payload = {
+        "model":      MODEL,
+        "max_tokens": 2000,
+        "system":     system_prompt,
+        "tools": [{
+            "type":     "web_search_20250305",
+            "name":     "web_search",
+            "max_uses": 4,
+        }],
+        "messages": [{
+            "role":    "user",
+            "content": f"Find IT solutions for: {query}\nSearch Stack Overflow, Server Fault, Reddit r/sysadmin and r/techsupport, and Spiceworks for the best community-verified answers.",
+        }],
+    }
+
+    resp = requests.post(ANTHROPIC_URL, headers=headers, json=payload, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+
+    text = ""
+    for block in data.get("content", []):
+        if block.get("type") == "text":
+            text += block.get("text", "")
+
+    text = text.strip()
+    if "```" in text:
+        parts = text.split("```")
+        for p in parts:
+            if p.startswith("json"):
+                text = p[4:].strip()
+                break
+            elif "{" in p:
+                text = p.strip()
+                break
+
+    start = text.find("{")
+    end   = text.rfind("}") + 1
+    if start >= 0 and end > start:
+        text = text[start:end]
+
+    return json.loads(text)
+
+
 @app.route("/")
 def index():
     return send_from_directory("static", "index.html")
 
+
 @app.route("/api/search")
 def api_search():
-    query          = request.args.get("q", "").strip()
-    tier_filter    = request.args.get("tier", type=int)
-    answered_only  = request.args.get("answered", "false").lower() == "true"
-    max_stack      = request.args.get("max_stack",  5, type=int)
-    max_reddit     = request.args.get("max_reddit", 3, type=int)
-    max_sw         = request.args.get("max_sw",     5, type=int)
+    raw_query = request.args.get("q", "").strip()
+    tier      = request.args.get("tier", 0, type=int)
 
-    if not query:
-        return jsonify({"error": "Missing query parameter"}), 400
+    if not raw_query:
+        return jsonify({"error": "Missing query"}), 400
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"error": "ANTHROPIC_API_KEY not configured on server."}), 500
 
-    all_results = []
-    all_results += search_stack_exchange(query, max_per_site=max_stack)
-    all_results += search_reddit(query, max_per_sub=max_reddit)
-    all_results += search_spiceworks(query, max_results=max_sw)
+    query       = clean_query(raw_query)
+    auto_tier   = tier if tier else detect_tier(query)
+    quick_fixes = get_quick_fixes(query)
 
-    all_results = deduplicate(all_results)
-    if tier_filter:
-        all_results = [r for r in all_results if r.tier == tier_filter]
-    if answered_only:
-        all_results = [r for r in all_results if r.answered or r.accepted_answer]
+    try:
+        ai_result = ask_claude(query, auto_tier)
+        return jsonify({
+            "query":       raw_query,
+            "clean_query": query,
+            "tier":        auto_tier,
+            "quick_fixes": quick_fixes,
+            "ai_result":   ai_result,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    all_results.sort(key=lambda r: r.relevance_score, reverse=True)
 
-    tier_counts = {1: 0, 2: 0, 3: 0}
-    for r in all_results:
-        tier_counts[r.tier] = tier_counts.get(r.tier, 0) + 1
+@app.route("/api/health")
+def health():
+    return jsonify({"status": "ok", "api_key_set": bool(ANTHROPIC_API_KEY), "model": MODEL})
 
-    return jsonify({
-        "query":       query,
-        "total":       len(all_results),
-        "tier_counts": tier_counts,
-        "results":     [r.to_dict() for r in all_results],
-        "synthesis":   synthesise(all_results),
-    })
 
 if __name__ == "__main__":
-    print("\n  🔍 IT Helpdesk Search — Web UI")
-    print("  Open http://localhost:5000 in your browser\n")
+    print("\n  IT Helpdesk AI Search")
+    print("  export ANTHROPIC_API_KEY=your-key-here")
+    print("  Open http://localhost:5000\n")
     app.run(debug=True, port=5000)
