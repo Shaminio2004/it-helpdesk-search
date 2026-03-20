@@ -7,943 +7,308 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
 <style>
 :root {
-  --bg:        #0d0f14;
-  --bg2:       #13151c;
-  --bg3:       #1a1d27;
-  --border:    #252836;
-  --accent:    #00e5ff;
-  --accent2:   #7c6af7;
-  --green:     #00e676;
-  --yellow:    #ffd740;
-  --red:       #ff5252;
-  --text:      #e0e4f0;
-  --muted:     #5a6078;
-  --so:        #f48024;
-  --sf:        #4a90d9;
-  --su:        #43a047;
-  --rd:        #ff4500;
-  --sw:        #e84c22;
+  --bg:#0d0f14; --bg2:#13151c; --bg3:#1a1d27; --border:#252836;
+  --accent:#00e5ff; --accent2:#7c6af7; --green:#00e676;
+  --yellow:#ffd740; --red:#ff5252; --text:#e0e4f0; --muted:#5a6078;
 }
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-/* ── Scanline overlay ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,229,255,0.015) 2px,
-    rgba(0,229,255,0.015) 4px
-  );
-  pointer-events: none;
-  z-index: 1000;
-}
-
-/* ── Grid background ── */
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background-image:
-    linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-
-/* ── Header ── */
-header {
-  padding: 40px 0 32px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 40px;
-}
-
-.logo-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-
-.logo-icon {
-  width: 44px; height: 44px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px;
-  box-shadow: 0 0 20px rgba(0,229,255,0.3);
-  flex-shrink: 0;
-}
-
-h1 {
-  font-family: 'Syne', sans-serif;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--text);
-}
-
-h1 span { color: var(--accent); }
-
-.tagline {
-  color: var(--muted);
-  font-size: 12px;
-  margin-left: 60px;
-  letter-spacing: 0.5px;
-}
-
-.source-pills {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  margin-left: 60px;
-}
-
-.pill {
-  font-size: 10px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.pill-so { color: var(--so); border-color: var(--so); background: rgba(244,128,36,0.08); }
-.pill-sf { color: var(--sf); border-color: var(--sf); background: rgba(74,144,217,0.08); }
-.pill-su { color: var(--su); border-color: var(--su); background: rgba(67,160,71,0.08); }
-.pill-rd { color: var(--rd); border-color: var(--rd); background: rgba(255,69,0,0.08); }
-.pill-sw { color: var(--sw); border-color: var(--sw); background: rgba(232,76,34,0.08); }
-
-/* ── Search Box ── */
-.search-wrap {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-.search-input {
-  width: 100%;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 15px;
-  padding: 18px 60px 18px 52px;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0,229,255,0.1), 0 0 20px rgba(0,229,255,0.1);
-}
-
-.search-input::placeholder { color: var(--muted); }
-
-.search-icon {
-  position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
-  color: var(--muted); font-size: 18px; pointer-events: none;
-}
-
-.search-btn {
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border: none; border-radius: 7px;
-  color: #000; font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; font-weight: 700;
-  padding: 10px 18px; cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-
-.search-btn:hover { opacity: 0.9; }
-.search-btn:active { transform: translateY(-50%) scale(0.97); }
-.search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ── Filter Row ── */
-.filters {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 36px;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-label {
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: 0.5px;
-}
-
-.filter-select, .filter-check-label {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  padding: 6px 10px;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.filter-select:focus { border-color: var(--accent); }
-
-.filter-check-label {
-  display: flex; align-items: center; gap: 6px;
-  user-select: none;
-}
-
-.filter-check-label input { accent-color: var(--accent); }
-
-/* ── Stats Bar ── */
-.stats-bar {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 14px 18px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  flex-wrap: wrap;
-}
-
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.stat-num {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent);
-  font-family: 'Syne', sans-serif;
-}
-
-.stat-label { color: var(--muted); }
-
-.tier-bar-wrap {
-  display: flex; gap: 6px; align-items: center; margin-left: auto;
-}
-
-.tier-chip {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  border: 1px solid;
-}
-
-.t1 { color: var(--green);  border-color: var(--green);  background: rgba(0,230,118,0.1); }
-.t2 { color: var(--yellow); border-color: var(--yellow); background: rgba(255,215,64,0.1); }
-.t3 { color: var(--red);    border-color: var(--red);    background: rgba(255,82,82,0.1); }
-
-/* ── Layout: 2 columns ── */
-.main-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .main-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Result Cards ── */
-.results-list { display: flex; flex-direction: column; gap: 12px; }
-
-.result-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 18px 20px;
-  cursor: pointer;
-  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-  position: relative;
-  overflow: hidden;
-  animation: fadeUp 0.3s ease both;
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.result-card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  border-radius: 3px 0 0 3px;
-}
-
-.result-card.tier-1::before { background: var(--green); }
-.result-card.tier-2::before { background: var(--yellow); }
-.result-card.tier-3::before { background: var(--red); }
-
-.result-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0,229,255,0.08);
-}
-
-.result-card.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0,229,255,0.15);
-}
-
-.card-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.source-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-  border: 1px solid;
-  flex-shrink: 0;
-}
-
-.badge-SO { color: var(--so);  border-color: var(--so);  background: rgba(244,128,36,0.1); }
-.badge-SF { color: var(--sf);  border-color: var(--sf);  background: rgba(74,144,217,0.1); }
-.badge-SU { color: var(--su);  border-color: var(--su);  background: rgba(67,160,71,0.1); }
-.badge-RD { color: var(--rd);  border-color: var(--rd);  background: rgba(255,69,0,0.1); }
-.badge-SW { color: var(--sw);  border-color: var(--sw);  background: rgba(232,76,34,0.1); }
-
-.card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.4;
-  flex: 1;
-}
-
-.card-meta {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.answered-badge {
-  color: var(--green);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border: 1px solid var(--green);
-  border-radius: 4px;
-  background: rgba(0,230,118,0.08);
-}
-
-.card-snippet {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 10px;
-}
-
-.tag {
-  font-size: 9px;
-  padding: 2px 6px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  color: var(--muted);
-}
-
-/* ── Solution Panel ── */
-.solution-panel {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  position: sticky;
-  top: 20px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.solution-panel::-webkit-scrollbar { width: 4px; }
-.solution-panel::-webkit-scrollbar-track { background: transparent; }
-.solution-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-.panel-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  background: var(--bg2);
-  z-index: 2;
-}
-
-.panel-header-icon {
-  width: 28px; height: 28px;
-  background: linear-gradient(135deg, var(--yellow), #ff9800);
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
-}
-
-.panel-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.panel-body { padding: 20px; }
-
-.solution-empty {
-  text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-  padding: 40px 20px;
-  line-height: 1.8;
-}
-
-.solution-empty .big { font-size: 36px; display: block; margin-bottom: 12px; }
-
-/* Solution item */
-.sol-item { margin-bottom: 24px; }
-.sol-item:last-child { margin-bottom: 0; }
-
-.sol-num {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 1px;
-  margin-bottom: 6px;
-}
-
-.sol-source-line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.sol-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 10px;
-  line-height: 1.4;
-}
-
-.sol-answer {
-  font-size: 11px;
-  color: #9ca3b8;
-  line-height: 1.75;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 8px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.sol-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: var(--accent);
-  text-decoration: none;
-  letter-spacing: 0.3px;
-}
-
-.sol-link:hover { text-decoration: underline; }
-
-.sol-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 16px 0;
-}
-
-/* ── Loader ── */
-.loader {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: 16px;
-}
-
-.loader.active { display: flex; }
-
-.spinner {
-  width: 40px; height: 40px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.loader-text {
-  font-size: 12px;
-  color: var(--muted);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
-
-.loader-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-}
-
-/* ── Error ── */
-.error-msg {
-  display: none;
-  background: rgba(255,82,82,0.1);
-  border: 1px solid var(--red);
-  border-radius: 8px;
-  padding: 14px 18px;
-  color: var(--red);
-  font-size: 12px;
-  margin-bottom: 20px;
-}
-
-.error-msg.active { display: block; }
-
-/* ── Empty State ── */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 2;
-}
-
-.empty-state .big { font-size: 48px; display: block; margin-bottom: 16px; }
-
-/* ── Quick examples ── */
-.examples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 32px;
-}
-
-.example-chip {
-  font-size: 11px;
-  padding: 6px 12px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--muted);
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
-  white-space: nowrap;
-}
-
-.example-chip:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.examples-label {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
-}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.015) 2px,rgba(0,229,255,.015) 4px);pointer-events:none;z-index:1000;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px;}
+
+header{padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:36px;}
+.logo-row{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+.logo{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px rgba(0,229,255,.3);}
+h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;}
+h1 span{color:var(--accent);}
+.tagline{color:var(--muted);font-size:11px;margin-left:56px;letter-spacing:.5px;}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;margin-left:56px;margin-top:10px;background:linear-gradient(135deg,rgba(124,106,247,.2),rgba(0,229,255,.2));border:1px solid var(--accent2);border-radius:20px;padding:4px 12px;font-size:10px;color:var(--accent);letter-spacing:.5px;}
+
+.search-wrap{position:relative;margin-bottom:16px;}
+.search-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px;padding:18px 130px 18px 48px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.1);}
+.search-input::placeholder{color:var(--muted);}
+.search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:18px;pointer-events:none;}
+.search-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:7px;color:#000;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:10px 18px;cursor:pointer;transition:opacity .2s;letter-spacing:.5px;}
+.search-btn:hover{opacity:.9;}
+.search-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px;}
+.filter-select{background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 10px;outline:none;}
+.filter-label{font-size:11px;color:var(--muted);align-self:center;}
+
+.examples-label{font-size:10px;color:var(--muted);letter-spacing:.5px;margin-bottom:10px;}
+.examples{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:36px;}
+.chip{font-size:11px;padding:6px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s;}
+.chip:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Loader */
+.loader{display:none;flex-direction:column;align-items:center;padding:60px 0;gap:16px;}
+.loader.on{display:flex;}
+.spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:12px;color:var(--accent);animation:pulse 1.5s ease-in-out infinite;}
+.loader-sub{font-size:11px;color:var(--muted);}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* Error */
+.error-box{display:none;background:rgba(255,82,82,.1);border:1px solid var(--red);border-radius:8px;padding:14px 18px;color:var(--red);font-size:12px;margin-bottom:20px;}
+.error-box.on{display:block;}
+
+/* Quick Fix */
+.quick-fix{display:none;background:var(--bg2);border:2px solid var(--yellow);border-radius:10px;padding:18px 20px;margin-bottom:24px;animation:fadeUp .3s ease;}
+.quick-fix.on{display:block;}
+.qf-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.qf-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--yellow);}
+.qf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:600px){.qf-grid{grid-template-columns:1fr;}}
+.qf-step{display:flex;align-items:flex-start;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:9px 12px;cursor:pointer;transition:background .2s,border-color .2s;font-size:11px;color:#9ca3b8;line-height:1.5;}
+.qf-step:hover{border-color:var(--yellow);}
+.qf-step.done{background:rgba(0,230,118,.08);border-color:var(--green);color:var(--green);}
+
+/* Results */
+.results-grid{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;}
+@media(max-width:900px){.results-grid{grid-template-columns:1fr;}}
+
+/* Summary card */
+.summary-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;padding:18px 20px;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.summary-label{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;}
+.summary-text{font-size:13px;color:var(--text);line-height:1.5;}
+.meta-row{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;}
+.tier-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;border:1px solid;}
+.t1{color:var(--green);border-color:var(--green);background:rgba(0,230,118,.1);}
+.t2{color:var(--yellow);border-color:var(--yellow);background:rgba(255,215,64,.1);}
+.t3{color:var(--red);border-color:var(--red);background:rgba(255,82,82,.1);}
+
+/* Solution cards */
+.sol-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px;animation:fadeUp .3s ease both;position:relative;overflow:hidden;}
+.sol-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.sol-card.rank-1::before{background:var(--accent);}
+.sol-card.rank-2::before{background:var(--accent2);}
+.sol-card.rank-3::before{background:var(--muted);}
+.sol-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.rank-num{width:22px;height:22px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0;}
+.sol-source{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;border:1px solid var(--accent2);color:var(--accent2);background:rgba(124,106,247,.1);}
+.sol-title{font-size:13px;font-weight:600;color:var(--text);}
+.sol-steps{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.sol-steps li{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:#9ca3b8;line-height:1.5;}
+.step-num{width:18px;height:18px;background:var(--bg3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);flex-shrink:0;margin-top:1px;}
+.sol-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--accent);text-decoration:none;margin-top:10px;}
+.sol-link:hover{text-decoration:underline;}
+
+/* Sidebar */
+.sidebar{}
+.sidebar-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+.sidebar-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.root-cause{font-size:11px;color:#9ca3b8;line-height:1.7;}
+.prevention{font-size:11px;color:#9ca3b8;line-height:1.7;}
+.tip-icon{font-size:16px;}
+
+/* Empty */
+.empty{text-align:center;padding:60px 0;color:var(--muted);font-size:12px;line-height:2;}
+.empty .big{font-size:48px;display:block;margin-bottom:16px;}
 </style>
 </head>
 <body>
-<div class="container">
-
-  <!-- Header -->
+<div class="wrap">
   <header>
     <div class="logo-row">
-      <div class="logo-icon">🔍</div>
+      <div class="logo">🔍</div>
       <h1>IT Helpdesk <span>Search</span></h1>
     </div>
-    <p class="tagline">SEARCH RESOLVED IT PROBLEMS ACROSS STACK EXCHANGE · REDDIT · SPICEWORKS</p>
-    <div class="source-pills">
-      <span class="pill pill-so">Stack Overflow</span>
-      <span class="pill pill-sf">Server Fault</span>
-      <span class="pill pill-su">Super User</span>
-      <span class="pill pill-rd">Reddit</span>
-      <span class="pill pill-sw">Spiceworks</span>
-    </div>
+    <p class="tagline">POWERED BY AI · SEARCHES STACK EXCHANGE · REDDIT · SPICEWORKS</p>
+    <div class="ai-badge">✨ Claude AI + Web Search</div>
+    <div style="margin-left:56px;margin-top:8px;font-size:11px;color:var(--muted);">Created by <span style="color:var(--accent);font-weight:600;">Paolos Kidanemariam</span></div>
   </header>
 
-  <!-- Search -->
   <div class="search-wrap">
     <span class="search-icon">⌕</span>
-    <input type="text" class="search-input" id="searchInput"
-           placeholder="e.g. outlook keeps asking for password, printer offline windows 10…"
-           autocomplete="off"/>
-    <button class="search-btn" id="searchBtn" onclick="doSearch()">SEARCH →</button>
+    <input type="text" class="search-input" id="qi"
+           placeholder="e.g. I can't connect to WiFi, my printer won't print, outlook keeps asking for password…"/>
+    <button class="search-btn" id="btn" onclick="doSearch()">SEARCH →</button>
   </div>
 
-  <!-- Filters -->
   <div class="filters">
-    <div class="filter-group">
-      <span class="filter-label">TIER</span>
-      <select class="filter-select" id="tierFilter">
-        <option value="">All Tiers</option>
-        <option value="1">Tier 1 — Basic</option>
-        <option value="2">Tier 2 — Infrastructure</option>
-        <option value="3">Tier 3 — Advanced</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <span class="filter-label">RESULTS / SITE</span>
-      <select class="filter-select" id="maxStack">
-        <option value="3">3</option>
-        <option value="5" selected>5</option>
-        <option value="10">10</option>
-      </select>
-    </div>
-    <label class="filter-check-label">
-      <input type="checkbox" id="answeredOnly"/>
-      Answered only
-    </label>
+    <span class="filter-label">TIER</span>
+    <select class="filter-select" id="tier">
+      <option value="0">Auto-detect</option>
+      <option value="1">Tier 1 — Basic</option>
+      <option value="2">Tier 2 — Infrastructure</option>
+      <option value="3">Tier 3 — Advanced</option>
+    </select>
   </div>
 
-  <!-- Quick examples -->
-  <div id="examplesSection">
-    <p class="examples-label">TRY AN EXAMPLE</p>
-    <div class="examples">
-      <span class="example-chip" onclick="setQuery('outlook keeps asking for password')">Outlook password loop</span>
-      <span class="example-chip" onclick="setQuery('printer offline windows 10')">Printer offline Win10</span>
-      <span class="example-chip" onclick="setQuery('active directory user locked out')">AD user locked out</span>
-      <span class="example-chip" onclick="setQuery('VPN not connecting after windows update')">VPN not connecting</span>
-      <span class="example-chip" onclick="setQuery('kubernetes pod crashloopbackoff')">K8s CrashLoopBackOff</span>
-      <span class="example-chip" onclick="setQuery('DNS not resolving internal domain')">DNS internal domain</span>
-      <span class="example-chip" onclick="setQuery('exchange server mail queue stuck')">Exchange queue stuck</span>
-      <span class="example-chip" onclick="setQuery('SSL certificate expired nginx')">SSL cert expired nginx</span>
-    </div>
+  <p class="examples-label">TRY AN EXAMPLE</p>
+  <div class="examples">
+    <span class="chip" onclick="go('outlook keeps asking for password')">Outlook password loop</span>
+    <span class="chip" onclick="go('printer offline windows 10')">Printer offline</span>
+    <span class="chip" onclick="go('cant connect to wifi')">Can\'t connect to WiFi</span>
+    <span class="chip" onclick="go('active directory user locked out')">AD user locked out</span>
+    <span class="chip" onclick="go('computer running slow')">PC running slow</span>
+    <span class="chip" onclick="go('VPN not connecting')">VPN not connecting</span>
+    <span class="chip" onclick="go('blue screen of death')">Blue screen (BSOD)</span>
+    <span class="chip" onclick="go('kubernetes pod crashloopbackoff')">K8s CrashLoopBackOff</span>
   </div>
 
-  <!-- Error -->
-  <div class="error-msg" id="errorMsg"></div>
-
-  <!-- Loader -->
+  <div class="error-box" id="err"></div>
   <div class="loader" id="loader">
     <div class="spinner"></div>
-    <div class="loader-steps">
-      <span id="ls1" style="color:var(--accent)">⠿ Querying Stack Exchange (SO / SF / SU)…</span>
-      <span id="ls2">⠿ Querying Reddit subreddits…</span>
-      <span id="ls3">⠿ Querying Spiceworks Community…</span>
-    </div>
+    <div class="loader-text">🤖 Claude AI is searching the web…</div>
+    <div class="loader-sub">Checking Stack Overflow · Server Fault · Reddit · Spiceworks</div>
   </div>
 
-  <!-- Stats -->
-  <div class="stats-bar" id="statsBar" style="display:none;">
-    <div class="stat">
-      <span class="stat-num" id="totalCount">0</span>
-      <span class="stat-label">results</span>
+  <!-- Quick Fix -->
+  <div class="quick-fix" id="qf">
+    <div class="qf-header">
+      <span style="font-size:20px;">⚡</span>
+      <span class="qf-title">Quick Fix Checklist — Try These First</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--muted);">Click each step to mark done</span>
     </div>
-    <div class="stat" style="border-left:1px solid var(--border); padding-left:20px;">
-      <span class="stat-label">query:</span>
-      <span id="currentQuery" style="color:var(--accent)">—</span>
-    </div>
-    <div class="tier-bar-wrap">
-      <span class="tier-chip t1" id="tc1">T1: 0</span>
-      <span class="tier-chip t2" id="tc2">T2: 0</span>
-      <span class="tier-chip t3" id="tc3">T3: 0</span>
-    </div>
+    <div class="qf-grid" id="qf-steps"></div>
   </div>
 
-  <!-- Main grid -->
-  <div class="main-grid" id="mainGrid" style="display:none;">
-    <div>
-      <div class="results-list" id="resultsList"></div>
-    </div>
-    <div>
-      <div class="solution-panel" id="solutionPanel">
-        <div class="panel-header">
-          <div class="panel-header-icon">💡</div>
-          <span class="panel-title">Solution Summary</span>
-        </div>
-        <div class="panel-body" id="panelBody">
-          <div class="solution-empty">
-            <span class="big">🔎</span>
-            Click any result card<br/>to see the synthesised solution.
-          </div>
-        </div>
-      </div>
-    </div>
+  <!-- Summary -->
+  <div id="summary-wrap"></div>
+
+  <!-- Main results -->
+  <div class="results-grid" id="rg" style="display:none;">
+    <div id="solutions"></div>
+    <div class="sidebar" id="sidebar"></div>
   </div>
 
-  <!-- Initial empty state -->
-  <div class="empty-state" id="emptyState">
+  <div class="empty" id="empty">
     <span class="big">🖥️</span>
-    Search for any IT problem above.<br/>
-    Results are ranked by community score<br/>
-    and whether an accepted answer exists.
+    Type any IT problem above — plain English is fine!<br/>
+    Claude AI will search the web and find real solutions.
   </div>
-
 </div>
 
 <script>
-let allResults = [];
-let synthesis  = [];
-let activeCard = null;
-
-// ── Loader animation
-let loaderTimer;
-function startLoaderAnim() {
-  const steps = ['ls1','ls2','ls3'];
-  let i = 0;
-  steps.forEach(id => {
-    document.getElementById(id).style.color = 'var(--muted)';
-  });
-  document.getElementById('ls1').style.color = 'var(--accent)';
-  loaderTimer = setInterval(() => {
-    steps.forEach(id => document.getElementById(id).style.color = 'var(--muted)');
-    i = (i + 1) % steps.length;
-    document.getElementById(steps[i]).style.color = 'var(--accent)';
-  }, 900);
-}
-function stopLoaderAnim() {
-  clearInterval(loaderTimer);
-  ['ls1','ls2','ls3'].forEach(id => {
-    const el = document.getElementById(id);
-    el.textContent = el.textContent.replace('⠿','✓');
-    el.style.color = 'var(--green)';
-  });
-}
-
-// ── Set query from chip
-function setQuery(q) {
-  document.getElementById('searchInput').value = q;
+function go(q) {
+  document.getElementById('qi').value = q;
   doSearch();
 }
 
-// ── Source key → badge class
-function badgeClass(key) {
-  const map = { SO:'badge-SO', SF:'badge-SF', SU:'badge-SU', RD:'badge-RD', SW:'badge-SW' };
-  return map[key] || 'badge-SW';
-}
-
-// ── Render results
-function renderResults(results) {
-  const list = document.getElementById('resultsList');
-  list.innerHTML = '';
-
-  if (!results.length) {
-    list.innerHTML = `<div class="empty-state" style="padding:40px 0;">
-      <span class="big">😕</span>No results found.<br/>Try a different query or remove filters.
-    </div>`;
-    return;
-  }
-
-  results.forEach((r, i) => {
-    const card = document.createElement('div');
-    card.className = `result-card tier-${r.tier}`;
-    card.style.animationDelay = `${i * 40}ms`;
-
-    const answeredBadge = (r.answered || r.accepted_answer)
-      ? `<span class="answered-badge">✓ SOLVED</span>` : '';
-
-    const tags = r.tags.slice(0,5).map(t => `<span class="tag">${t}</span>`).join('');
-    const snippet = r.snippet ? `<p class="card-snippet">${r.snippet}</p>` : '';
-    const tagsHtml = tags ? `<div class="card-tags">${tags}</div>` : '';
-
-    card.innerHTML = `
-      <div class="card-top">
-        <span class="source-badge ${badgeClass(r.source_key)}">${r.source}</span>
-        <span class="card-title">${r.title}</span>
-      </div>
-      <div class="card-meta">
-        <span>▲ ${r.score}</span>
-        <span>${r.answer_count} answers</span>
-        <span>relevance: ${r.relevance_score}</span>
-        ${answeredBadge}
-        <span class="tier-chip t${r.tier}" style="margin-left:auto;font-size:9px;padding:2px 7px;">T${r.tier}</span>
-      </div>
-      ${snippet}
-      ${tagsHtml}
-    `;
-
-    card.onclick = () => {
-      if (activeCard) activeCard.classList.remove('active');
-      card.classList.add('active');
-      activeCard = card;
-      showDetail(r, i);
-    };
-
-    list.appendChild(card);
-  });
-}
-
-// ── Show detail in panel
-function showDetail(r, idx) {
-  const body = document.getElementById('panelBody');
-
-  // Find matching synthesis entry first
-  const synEntry = Array.isArray(synthesis)
-    ? synthesis.find(s => s.title === r.title) : null;
-
-  const answer = r.accepted_answer || r.snippet || 'No detailed solution available for this result.';
-
-  body.innerHTML = `
-    <div class="sol-item">
-      <div class="sol-num">SELECTED RESULT #${idx + 1}</div>
-      <div class="sol-source-line">
-        <span class="source-badge ${badgeClass(r.source_key)}">${r.source}</span>
-        <span class="tier-chip t${r.tier}" style="font-size:9px;padding:2px 7px;">Tier ${r.tier}</span>
-        ${(r.answered || r.accepted_answer) ? '<span class="answered-badge">✓ SOLVED</span>' : ''}
-      </div>
-      <div class="sol-title">${r.title}</div>
-      <div class="sol-answer">${answer}</div>
-      <a href="${r.url}" target="_blank" class="sol-link">↗ Open full thread</a>
-    </div>
-  `;
-}
-
-// ── Show full synthesis
-function showSynthesis() {
-  if (!Array.isArray(synthesis) || !synthesis.length) return;
-  const body = document.getElementById('panelBody');
-  body.innerHTML = synthesis.map((s, i) => `
-    <div class="sol-item">
-      <div class="sol-num">SOLUTION #${s.index} — TOP RANKED</div>
-      <div class="sol-source-line">
-        <span class="source-badge ${badgeClass(s.source_key || 'SW')}">${s.source}</span>
-        <span class="tier-chip t${s.tier}" style="font-size:9px;padding:2px 7px;">Tier ${s.tier}</span>
-      </div>
-      <div class="sol-title">${s.title}</div>
-      <div class="sol-answer">${s.answer}</div>
-      <a href="${s.url}" target="_blank" class="sol-link">↗ Open full thread</a>
-      ${i < synthesis.length - 1 ? '<hr class="sol-divider"/>' : ''}
-    </div>
-  `).join('');
-}
-
-// ── Main search
 async function doSearch() {
-  const query = document.getElementById('searchInput').value.trim();
+  const query = document.getElementById('qi').value.trim();
   if (!query) return;
+  const tier  = document.getElementById('tier').value;
 
-  const tier     = document.getElementById('tierFilter').value;
-  const maxStack = document.getElementById('maxStack').value;
-  const answered = document.getElementById('answeredOnly').checked;
-
-  // UI reset
-  document.getElementById('emptyState').style.display    = 'none';
-  document.getElementById('examplesSection').style.display = 'none';
-  document.getElementById('statsBar').style.display      = 'none';
-  document.getElementById('mainGrid').style.display      = 'none';
-  document.getElementById('errorMsg').classList.remove('active');
-  document.getElementById('loader').classList.add('active');
-  document.getElementById('searchBtn').disabled = true;
-  startLoaderAnim();
-
-  // Reset loader text
-  document.getElementById('ls1').textContent = '⠿ Querying Stack Exchange (SO / SF / SU)…';
-  document.getElementById('ls2').textContent = '⠿ Querying Reddit subreddits…';
-  document.getElementById('ls3').textContent = '⠿ Querying Spiceworks Community…';
+  // Reset UI
+  document.getElementById('empty').style.display    = 'none';
+  document.getElementById('err').className          = 'error-box';
+  document.getElementById('qf').className           = 'quick-fix';
+  document.getElementById('summary-wrap').innerHTML = '';
+  document.getElementById('solutions').innerHTML    = '';
+  document.getElementById('sidebar').innerHTML      = '';
+  document.getElementById('rg').style.display       = 'none';
+  document.getElementById('loader').className       = 'loader on';
+  document.getElementById('btn').disabled           = true;
 
   try {
-    const params = new URLSearchParams({ q: query, max_stack: maxStack });
-    if (tier)     params.set('tier', tier);
-    if (answered) params.set('answered', 'true');
+    const params = new URLSearchParams({ q: query, tier });
+    const res    = await fetch(`/api/search?${params}`);
+    const data   = await res.json();
 
-    const res  = await fetch(`/api/search?${params}`);
-    const data = await res.json();
+    document.getElementById('loader').className = 'loader';
 
-    stopLoaderAnim();
-    setTimeout(() => {
-      document.getElementById('loader').classList.remove('active');
+    if (data.error) {
+      const eb = document.getElementById('err');
+      eb.textContent = '❌ ' + data.error;
+      eb.className   = 'error-box on';
+      document.getElementById('empty').style.display = 'block';
+      return;
+    }
 
-      if (data.error) throw new Error(data.error);
+    // Quick Fix
+    if (data.quick_fixes && data.quick_fixes.length) {
+      const qf    = document.getElementById('qf');
+      const steps = document.getElementById('qf-steps');
+      steps.innerHTML = data.quick_fixes.map((s,i) => `
+        <div class="qf-step" onclick="this.classList.toggle('done')">
+          <span style="flex-shrink:0;font-size:13px;">${getEmoji(s)}</span>
+          <span>${stripEmoji(s)}</span>
+        </div>`).join('');
+      qf.className = 'quick-fix on';
+    }
 
-      allResults = data.results || [];
-      synthesis  = data.synthesis || [];
+    const ai = data.ai_result;
 
-      // Stats
-      document.getElementById('totalCount').textContent = data.total;
-      document.getElementById('currentQuery').textContent = `"${data.query}"`;
-      document.getElementById('tc1').textContent = `T1: ${data.tier_counts[1] || 0}`;
-      document.getElementById('tc2').textContent = `T2: ${data.tier_counts[2] || 0}`;
-      document.getElementById('tc3').textContent = `T3: ${data.tier_counts[3] || 0}`;
-      document.getElementById('statsBar').style.display = 'flex';
-      document.getElementById('mainGrid').style.display = 'grid';
+    // Summary
+    const tierClass = 't' + data.tier;
+    document.getElementById('summary-wrap').innerHTML = `
+      <div class="summary-card">
+        <div class="summary-label">PROBLEM SUMMARY</div>
+        <div class="summary-text">${ai.summary || query}</div>
+        <div class="meta-row">
+          <span class="tier-badge ${tierClass}">Tier ${data.tier}</span>
+          <span style="font-size:10px;color:var(--muted);">Searched: Stack Overflow · Server Fault · Reddit · Spiceworks</span>
+        </div>
+      </div>`;
 
-      // Reset panel
-      activeCard = null;
-      const panelBody = document.getElementById('panelBody');
-      if (Array.isArray(synthesis) && synthesis.length) {
-        showSynthesis();
-      } else {
-        panelBody.innerHTML = `<div class="solution-empty">
-          <span class="big">🔎</span>
-          Click any result card<br/>to see its solution.
+    // Solutions
+    const sols = document.getElementById('solutions');
+    (ai.solutions || []).forEach((s, i) => {
+      const steps = (s.steps || []).map((st, j) => `
+        <li><span class="step-num">${j+1}</span>${st}</li>`).join('');
+      const link = s.url && s.url.startsWith('http')
+        ? `<a href="${s.url}" target="_blank" class="sol-link">↗ View original thread</a>` : '';
+      const div = document.createElement('div');
+      div.className = `sol-card rank-${s.rank || i+1}`;
+      div.style.animationDelay = `${i*80}ms`;
+      div.innerHTML = `
+        <div class="sol-header">
+          <span class="rank-num">${s.rank || i+1}</span>
+          <span class="sol-source">${s.source || 'Community'}</span>
+          ${s.votes ? `<span style="font-size:10px;color:var(--muted);">▲ ${s.votes} votes</span>` : ''}
+        </div>
+        <div class="sol-title">${s.title}</div>
+        <ul class="sol-steps">${steps}</ul>
+        ${link}`;
+      sols.appendChild(div);
+    });
+
+    // Sidebar
+    const sb = document.getElementById('sidebar');
+    if (ai.root_cause) {
+      sb.innerHTML += `
+        <div class="sidebar-card">
+          <div class="sidebar-title"><span class="tip-icon">🔍</span> Root Cause</div>
+          <div class="root-cause">${ai.root_cause}</div>
         </div>`;
-      }
+    }
+    if (ai.prevention) {
+      sb.innerHTML += `
+        <div class="sidebar-card">
+          <div class="sidebar-title"><span class="tip-icon">🛡️</span> Prevention</div>
+          <div class="prevention">${ai.prevention}</div>
+        </div>`;
+    }
 
-      renderResults(allResults);
-    }, 600);
+    document.getElementById('rg').style.display = 'grid';
 
-  } catch (err) {
-    stopLoaderAnim();
-    document.getElementById('loader').classList.remove('active');
-    const em = document.getElementById('errorMsg');
-    em.textContent = `Error: ${err.message || 'Could not reach server. Is server.py running?'}`;
-    em.classList.add('active');
-    document.getElementById('emptyState').style.display = 'block';
+  } catch (e) {
+    document.getElementById('loader').className = 'loader';
+    const eb = document.getElementById('err');
+    eb.textContent = '❌ Error: ' + e.message;
+    eb.className   = 'error-box on';
+    document.getElementById('empty').style.display = 'block';
   } finally {
-    document.getElementById('searchBtn').disabled = false;
+    document.getElementById('btn').disabled = false;
   }
 }
 
-// ── Enter key
-document.getElementById('searchInput').addEventListener('keydown', e => {
+function getEmoji(s) {
+  const m = s.match(/^([\u{1F300}-\u{1FFFF}]|[\u2600-\u26FF]|[\u2700-\u27BF])/u);
+  return m ? m[0] : '✅';
+}
+function stripEmoji(s) {
+  return s.replace(/^[\u{1F300}-\u{1FFFF}\u2600-\u26FF\u2700-\u27BF]\s*/u, '');
+}
+
+document.getElementById('qi').addEventListener('keydown', e => {
   if (e.key === 'Enter') doSearch();
 });
 </script>
